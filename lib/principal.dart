@@ -1,44 +1,177 @@
+import 'package:appkanban/interfaces/prioridad.dart';
+import 'package:appkanban/interfaces/tarea.dart';
+import 'package:appkanban/interfaces/tipo_tarea.dart';
+import 'package:appkanban/services/prioridad_service.dart';
+import 'package:appkanban/services/tarea_invitada_service.dart';
+import 'package:appkanban/services/tarea_service.dart';
+import 'package:appkanban/services/tareas_asignadas_service.dart';
+import 'package:appkanban/services/tareas_creadas_service.dart';
+import 'package:appkanban/services/tipo_tarea_service.dart';
 import 'package:flutter/material.dart';
+import '../interfaces/estado.dart';
+import '../services/estado_service.dart';
+import 'package:appkanban/widgets/kanban_pageview.dart';
 
-class PrincipalView extends StatelessWidget {
+class PrincipalView extends StatefulWidget {
   const PrincipalView({Key? key}) : super(key: key);
 
   @override
+  State<PrincipalView> createState() => _PrincipalViewState();
+}
 
+class _PrincipalViewState extends State<PrincipalView> {
+  List<TipoTarea> tiposTarea = [];
+  List<Estado> estados = [];
+  List<Prioridad> prioridades = [];
+  List<Tarea> tareas = [];
+  List<Tarea> tareasCreadas = [];
+  List<Tarea> tareasAsignadas = [];
+  List<Tarea> tareasInvitadas = [];
+  List<Tarea> tareasFiltradasPorEstado = [];
+  String _pestanaSeleccionada = "todas"; // todas | creadas
 
-  
-  Widget build(BuildContext context) {
-    final List<List<String>> todasLasTareas = [
-      ["1", "REF-001", "Alta"],
-      ["2", "REF-002", "Media"],
-      ["3", "REF-003", "Baja"],
-      ["4", "REF-004", "Alta"],
-      ["5", "REF-005", "Alta"],
-      ["6", "REF-006", "Media"],
-      ["7", "REF-007", "Baja"],
-      ["8", "REF-008", "Alta"],
-      ["9", "REF-005", "Alta"],
-      ["10", "REF-006", "Media"],
-      ["11", "REF-007", "Baja"],
-      ["12", "REF-008", "Alta"],
-    ];
+  String? tipoSeleccionado;
+  Estado? _estadoFiltroSeleccionado;
+  Prioridad? prioridadSeleccionada;
 
-    // Dividimos las tareas en columnas (ej. 4 columnas de ejemplo)
-    final List<List<List<String>>> columnas = [
-      todasLasTareas.sublist(0, 8),
-      todasLasTareas.sublist(0, 12),
-      todasLasTareas.sublist(0, 5),
-      todasLasTareas.sublist(0, 10),
-    ];
+  bool _cargando = false;
+  bool _mostrarFiltros = false;
+  bool cargandoInvitadas = false;
 
-    // Agrupamos las columnas de 2 en 2 para las páginas
-    final List<List<List<List<String>>>> paginas = [];
-    for (int i = 0; i < columnas.length; i += 2) {
-      paginas.add(columnas.sublist(i, (i + 2).clamp(0, columnas.length)));
+  @override
+  void initState() {
+    super.initState();
+    _cargarEstados();
+    _cargarTiposTarea();
+    _cargarPrioridades();
+    _cargarTareas();
+    _cargarTareasAsignadas();
+  }
+
+  void _cargarEstados() async {
+    try {
+      final data = await EstadoService().getEstados();
+      setState(() => estados = data);
+    } catch (e) {
+      print("Error cargando estados: $e");
+    }
+  }
+
+  void _cargarTiposTarea() async {
+    try {
+      final data = await TipoTareaService().getTiposTarea();
+      setState(() => tiposTarea = data);
+    } catch (e) {
+      print("Error cargando tipos de tarea: $e");
+    }
+  }
+
+  void _cargarPrioridades() async {
+    try {
+      final data = await PrioridadService().fetchPrioridades();
+      setState(() => prioridades = data);
+    } catch (e) {
+      print("Error cargando prioridades: $e");
+    }
+  }
+
+  void _cargarTareas() async {
+    setState(() => _cargando = true);
+    try {
+      final data = await TareaService().fetchTareas(
+        rangoIni: 0,
+        rangoFin: 10,
+      );
+      setState(() => tareas = data);
+    } catch (e) {
+      print("Error cargando tareas: $e");
+    } finally {
+      setState(() => _cargando = false);
+    }
+  }
+
+  void _cargarTareasCreadas() async {
+    setState(() => _cargando = true);
+    try {
+      final data = await TareasCreadasService().fetchTareasCreadas(
+        token:
+            "bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiJhZG1pbiIsIm5iZiI6MTc1MDM0NjcyNCwiZXhwIjoxNzgxNDUwNzI0LCJpYXQiOjE3NTAzNDY3MjR9.NChZbZBfi3IZIVidfWujhmcwgtFYF4hDM1Xg7Z7z5J0",
+        user: "desa026",
+      );
+      setState(() => tareasCreadas = data);
+    } catch (e) {
+      print("Error cargando tareas creadas: $e");
+    } finally {
+      setState(() => _cargando = false);
+    }
+  }
+
+  void _cargarTareasAsignadas() async {
+    setState(() => _cargando = true);
+    try {
+      final data = await TareasAsignadasService().fetchTareasAsignadas(
+        rangoIni: 0,
+        rangoFin: 10,
+      );
+      setState(() => tareasAsignadas = data);
+    } catch (e) {
+      print("Error cargando tareas asignadas: $e");
+    } finally {
+      setState(() => _cargando = false);
+    }
+  }
+
+  void _cargarTareasInvitadas() async {
+    setState(() => cargandoInvitadas = true);
+    try {
+      final data = await TareasInvitadasService().fetchTareasInvitadas(
+        rangoIni: 0,
+        rangoFin: 10,
+      );
+      setState(() {
+        tareasInvitadas = data;
+      });
+    } catch (e) {
+      print("Error cargando tareas invitadas: $e");
+      setState(() {
+        tareasInvitadas = [];
+      });
+    } finally {
+      setState(() => cargandoInvitadas = false);
+    }
+  }
+
+  void _filtrarTareasPorEstado() {
+    if (_estadoFiltroSeleccionado == null) {
+      setState(() {
+        tareasFiltradasPorEstado = [];
+      });
+      return;
     }
 
+    List<Tarea> origen;
 
+    if (_pestanaSeleccionada == "creadas") {
+      origen = tareasCreadas;
+    } else if (_pestanaSeleccionada == "asignadas") {
+      origen = tareasAsignadas;
+    } else if (_pestanaSeleccionada == "invitadas") {
+      origen = tareasInvitadas;
+    } else {
+      origen = tareas;
+    }
 
+    setState(() {
+      tareasFiltradasPorEstado = origen
+          .where((t) => t.tareaEstado == _estadoFiltroSeleccionado!.descripcion)
+          .toList();
+    });
+  }
+
+  // 🔹 Agrupar tareas y mostrarlas en PageView por estado
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xffFEF5E7),
       appBar: AppBar(
@@ -50,196 +183,302 @@ class PrincipalView extends StatelessWidget {
                 color: Colors.white, fontSize: 25, fontWeight: FontWeight.bold),
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.menu,
-              color: Colors.white,
-            ),
-            onPressed: () {
-              // Aquí va la acción al pulsar el menú
-              print("Menú presionado");
-            },
-          ),
-        ],
       ),
-      body: Column(
-        children: [
-          Container(
-            color: const Color(0xffFEF5E7),
-            width: double.infinity,
-            child: ExpansionTile(
-              title: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20),
-                child: Text(
-                  "Filtros",
-                  style: TextStyle(fontWeight: FontWeight.bold),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Botón Filtros
+            SizedBox(
+              width: double.infinity,
+              height: 40,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xffFEF5E7),
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(3),
+                  ),
                 ),
-              ),
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                onPressed: () {
+                  setState(() {
+                    _mostrarFiltros = !_mostrarFiltros;
+                    if (_mostrarFiltros && estados.isEmpty) {
+                      _cargarEstados();
+                    }
+                  });
+                },
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20),
                   child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Expanded(child: _filtroBox("Estados")),
-                      const SizedBox(width: 8),
-                      Expanded(child: _filtroBox("Tipos")),
+                      Text(
+                        'Filtros',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Icon(Icons.expand_more)
                     ],
                   ),
                 ),
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-                  child: _filtroBox("Prioridad"),
-                ),
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-                  child: _inputFiltro("Buscar por Referencia"),
-                ),
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-                  child: _inputFiltro("Buscar por Usuario"),
-                ),
-              ],
-            ),
-          ),
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 50,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      children: const [
-                        _BotonAzul(pestanias: "Todas"),
-                        SizedBox(width: 15),
-                        _BotonAzul(pestanias: "Creadas"),
-                        SizedBox(width: 15),
-                        _BotonAzul(pestanias: "Asignadas"),
-                        SizedBox(width: 15),
-                        _BotonAzul(pestanias: "Invitadas"),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(right: 20, left: 20, top: 8),
-              child: PageView(
-                pageSnapping: true,
-                scrollDirection: Axis.horizontal,
-                children: paginas.expand((grupo) => grupo).map((columna) {
-                  return SingleChildScrollView(
-                    scrollDirection: Axis.vertical,
-                    child: buildColumnaTareas(
-                        columna, MediaQuery.of(context).size.width),
-                  );
-                }).toList(),
               ),
             ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 5, right: 10),
-                child: Container(
-                  height: 20,
-                  width: 20,
-                  color: Color(0xff134895),
-                  child: const Text(
-                    "1",
-                    style: TextStyle(color: Colors.white),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 5, right: 10),
-                child: Container(
-                  child: Container(
-                    height: 20,
-                    width: 20,
-                    color: Color(0xff134895),
-                    child: const Text(
-                      "2",
-                      style: TextStyle(color: Colors.white),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 5, right: 10),
-                child: Container(
-                  child: Container(
-                    height: 20,
-                    width: 20,
-                    color: Color(0xff134895),
-                    child: const Text(
-                      "3",
-                      style: TextStyle(color: Colors.white),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 5, right: 10),
-                child: Container(
-                  child: Container(
-                    height: 20,
-                    width: 20,
-                    color: Color(0xff134895),
-                    child: const Text(
-                      "4",
-                      style: TextStyle(color: Colors.white),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          )
-        ],
-      ),
-    );
-  }
-}
 
-class _BotonAzul extends StatelessWidget {
-  const _BotonAzul({required this.pestanias});
-  final String pestanias;
+            // Contenedor de filtros
+            if (_mostrarFiltros)
+              Column(
+                children: [
+                  const SizedBox(height: 10),
+                  // Estados y tipos
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 50,
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<Estado>(
+                              
+                              isExpanded: true,
+                              value: _estadoFiltroSeleccionado,
+                              items: estados
+                                  .map((e) => DropdownMenuItem(
+                                        value: e,
+                                        child: Text(e.descripcion),
+                                      ))
+                                  .toList(),
+                              onChanged: (nuevo) {
+                                setState(
+                                    () => _estadoFiltroSeleccionado = nuevo);
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Container(
+                          height: 50,
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<TipoTarea>(
+                               hint: const Text("Seleccione un tipo"),
+                              isExpanded: true,
+                              value: tipoSeleccionado != null
+                                  ? tiposTarea.firstWhere(
+                                      (t) => t.descripcion == tipoSeleccionado,
+                                      orElse: () => tiposTarea.first,
+                                    )
+                                
+                                  : null,
+                                  
+                              items: tiposTarea
+                                  .map((tipo) => DropdownMenuItem(
+                                        value: tipo,
+                                        child: Text(tipo.descripcion),
+                                      ))
+                                  .toList(),
+                              onChanged: (nuevo) => setState(
+                                  () => tipoSeleccionado = nuevo?.descripcion),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
 
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 120,
-      child: ElevatedButton(
-        onPressed: () {},
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Color(0xff134895),
-          foregroundColor: Colors.white,
+                  // Prioridades
+                  prioridades.isNotEmpty
+                      ? Container(
+                          height: 50,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE0E0E0),
+                            border: Border.all(color: const Color(0xffCED4DA)),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<Prioridad>(
+                              hint: const Text('Selecciona una prioridad'),
+                              value: prioridadSeleccionada,
+                              isExpanded: true,
+                              items: prioridades.map((p) {
+                                return DropdownMenuItem<Prioridad>(
+                                  value: p,
+                                  child: Text(p.nombre),
+                                );
+                              }).toList(),
+                              onChanged: (Prioridad? nueva) {
+                                setState(() => prioridadSeleccionada = nueva);
+                              },
+                            ),
+                          ),
+                        )
+                      : _filtroBox("Prioridad"),
+
+                  const SizedBox(height: 6),
+                  _inputFiltro("Buscar por Referencia"),
+                  const SizedBox(height: 6),
+                  _inputFiltro("Buscar por Usuario"),
+                ],
+              ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 125,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _pestanaSeleccionada = "todas";
+                        });
+                        _cargarTareas();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _pestanaSeleccionada == "todas"
+                            ? Colors.grey
+                            : Color(0xff134895),
+                      ),
+                      child: const Text(
+                        "Todas",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    width: 125,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _pestanaSeleccionada = "creadas";
+                        });
+                        _cargarTareasCreadas();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _pestanaSeleccionada == "creadas"
+                            ? Colors.grey
+                            : Color(0xff134895),
+                      ),
+                      child: const Text("Creadas",
+                          style: TextStyle(color: Colors.white)),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    width: 125,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _pestanaSeleccionada = "asignadas";
+                        });
+                        _cargarTareasAsignadas();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _pestanaSeleccionada == "asignadas"
+                            ? Colors.grey
+                            : Color(0xff134895),
+                      ),
+                      child: const Text("Asignadas",
+                          style: TextStyle(color: Colors.white)),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    width: 125,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _pestanaSeleccionada = "invitadas";
+                        });
+                        _cargarTareasInvitadas();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _pestanaSeleccionada == "invitadas"
+                            ? Colors.grey
+                            : Color(0xff134895),
+                      ),
+                      child: const Text("Invitadas",
+                          style: TextStyle(color: Colors.white)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+
+// 🔹 Tablero deslizable por estados
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                height: 300,
+                color: const Color(0xffFEF5E7),
+                child: _cargando
+                    ? const Center(child: CircularProgressIndicator())
+                    : Builder(
+                        builder: (_) {
+                          // 🔹 Elegir la lista según pestaña
+                          List<Tarea> tareasBase;
+                          switch (_pestanaSeleccionada) {
+                            case "todas":
+                              tareasBase = tareas;
+                              break;
+                            case "creadas":
+                              tareasBase = tareasCreadas;
+                              break;
+                            case "asignadas":
+                              tareasBase = tareasAsignadas;
+                              break;
+                            case "invitadas":
+                              tareasBase = tareasInvitadas;
+                              break;
+                            default:
+                              tareasBase = [];
+                          }
+
+                          // 🔹 Aplicar filtro de estado si está seleccionado
+                          if (_estadoFiltroSeleccionado != null) {
+                            tareasBase = tareasBase
+                                .where((t) =>
+                                    t.estadoObjeto ==
+                                        _estadoFiltroSeleccionado!.estado &&
+                                    t.tareaEstado ==
+                                        _estadoFiltroSeleccionado!.descripcion)
+                                .toList();
+                          }
+
+                          // 🔹 Mostrar resultado final
+                          if (tareasBase.isEmpty) {
+                            return Center(
+                              child: Text(
+                                _estadoFiltroSeleccionado != null
+                                    ? "No hay tareas con ese estado"
+                                    : "No se cargaron tareas",
+                              ),
+                            );
+                          }
+
+                          return KanbanPageView(tareas: tareasBase);
+                        },
+                      ),
+              ),
+            )
+          ],
         ),
-        child: Text(pestanias),
       ),
     );
   }
 }
 
+// 🔹 Caja de filtro
 Widget _filtroBox(String label) {
   return Container(
     height: 50,
     decoration: BoxDecoration(
       color: const Color(0xFFE0E0E0),
-      border: Border.all(color: Color(0xffCED4DA)),
+      border: Border.all(color: const Color(0xffCED4DA)),
       borderRadius: BorderRadius.circular(8),
     ),
     child: Row(
@@ -255,10 +494,11 @@ Widget _filtroBox(String label) {
   );
 }
 
+// 🔹 Input de búsqueda
 Widget _inputFiltro(String label) {
   return Container(
     decoration: BoxDecoration(
-      border: Border.all(color: Color(0xffCED4DA)),
+      border: Border.all(color: const Color(0xffCED4DA)),
       borderRadius: BorderRadius.circular(8),
     ),
     child: TextField(
@@ -267,83 +507,6 @@ Widget _inputFiltro(String label) {
         contentPadding: const EdgeInsets.symmetric(horizontal: 8),
         border: InputBorder.none,
       ),
-    ),
-  );
-}
-
-Widget tareaCard(String id, String referencia, String prioridad) {
-  Color prioridadColor = prioridad == "Alta"
-      ? Colors.red
-      : prioridad == "Media"
-          ? Colors.orange
-          : Colors.green;
-
-  return Container(
-    margin: const EdgeInsets.only(bottom: 8),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(12),
-      boxShadow: const [
-        BoxShadow(
-          color: Colors.black12,
-          blurRadius: 6,
-          offset: Offset(0, 3),
-        )
-      ],
-    ),
-    child: Row(
-      children: [
-        // Línea de color a la izquierda
-        Container(
-          width: 6, // ancho de la línea
-          height:
-              80, // altura aproximada de la tarjeta, o usa double.infinity y constraints
-          decoration: BoxDecoration(
-            color: prioridadColor,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(12),
-              bottomLeft: Radius.circular(12),
-            ),
-          ),
-        ),
-
-        // Espacio entre línea y contenido
-        const SizedBox(width: 10),
-
-        // Contenido de la tarjeta
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 5),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("ID: $id",
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 5),
-                Text("Referencia: $referencia"),
-                const SizedBox(height: 5),
-                Text(
-                  "Prioridad: $prioridad",
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-Widget buildColumnaTareas(List<List<String>> tareas, double width) {
-  return SizedBox(
-    width: width,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: tareas.map((t) => tareaCard(t[0], t[1], t[2])).toList(),
     ),
   );
 }
