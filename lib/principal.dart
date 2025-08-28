@@ -30,9 +30,16 @@ class _PrincipalViewState extends State<PrincipalView> {
   List<Tarea> tareasFiltradasPorEstado = [];
   String _pestanaSeleccionada = "todas"; // todas | creadas
 
+  TipoTarea? _tipoFiltroSeleccionado;
+  Prioridad? _prioridadFiltroSeleccionada;
   String? tipoSeleccionado;
   Estado? _estadoFiltroSeleccionado;
   Prioridad? prioridadSeleccionada;
+  // 🔹 Filtro por estado (ya lo tienes)
+
+// 🔹 Filtro por tipo de tarea
+
+// 🔹 Filtro por prioridad
 
   bool _cargando = false;
   bool _mostrarFiltros = false;
@@ -141,14 +148,7 @@ class _PrincipalViewState extends State<PrincipalView> {
     }
   }
 
-  void _filtrarTareasPorEstado() {
-    if (_estadoFiltroSeleccionado == null) {
-      setState(() {
-        tareasFiltradasPorEstado = [];
-      });
-      return;
-    }
-
+  void _filtrarTareas() {
     List<Tarea> origen;
 
     if (_pestanaSeleccionada == "creadas") {
@@ -161,10 +161,34 @@ class _PrincipalViewState extends State<PrincipalView> {
       origen = tareas;
     }
 
-    setState(() {
-      tareasFiltradasPorEstado = origen
+    List<Tarea> filtradas = origen;
+
+    // 🔹 Filtro por estado
+    if (_estadoFiltroSeleccionado != null) {
+      filtradas = filtradas
           .where((t) => t.tareaEstado == _estadoFiltroSeleccionado!.descripcion)
           .toList();
+    }
+
+    // 🔹 Filtro por tipo de tarea
+    if (_tipoFiltroSeleccionado != null &&
+        _tipoFiltroSeleccionado!.descripcion.isNotEmpty) {
+      filtradas = filtradas
+          .where((t) =>
+              t.descripcionTipoTarea == _tipoFiltroSeleccionado!.descripcion)
+          .toList();
+    }
+
+    // 🔹 Filtro por prioridad
+    if (_prioridadFiltroSeleccionada != null) {
+      filtradas = filtradas
+          .where((t) =>
+              t.nomNivelPrioridad == _prioridadFiltroSeleccionada!.nombre)
+          .toList();
+    }
+
+    setState(() {
+      tareasFiltradasPorEstado = filtradas;
     });
   }
 
@@ -239,7 +263,7 @@ class _PrincipalViewState extends State<PrincipalView> {
                           height: 50,
                           child: DropdownButtonHideUnderline(
                             child: DropdownButton<Estado>(
-                              
+                              hint: const Text("Seleccione un Estado"),
                               isExpanded: true,
                               value: _estadoFiltroSeleccionado,
                               items: estados
@@ -262,24 +286,19 @@ class _PrincipalViewState extends State<PrincipalView> {
                           height: 50,
                           child: DropdownButtonHideUnderline(
                             child: DropdownButton<TipoTarea>(
-                               hint: const Text("Seleccione un tipo"),
+                              hint: const Text("Seleccione un Tipo"),
+                              value: _tipoFiltroSeleccionado,
                               isExpanded: true,
-                              value: tipoSeleccionado != null
-                                  ? tiposTarea.firstWhere(
-                                      (t) => t.descripcion == tipoSeleccionado,
-                                      orElse: () => tiposTarea.first,
-                                    )
-                                
-                                  : null,
-                                  
-                              items: tiposTarea
-                                  .map((tipo) => DropdownMenuItem(
-                                        value: tipo,
-                                        child: Text(tipo.descripcion),
-                                      ))
-                                  .toList(),
-                              onChanged: (nuevo) => setState(
-                                  () => tipoSeleccionado = nuevo?.descripcion),
+                              items: tiposTarea.map((tipo) {
+                                return DropdownMenuItem(
+                                  value: tipo,
+                                  child: Text(
+                                      tipo.descripcion), // usamos descripcion
+                                );
+                              }).toList(),
+                              onChanged: (nuevo) {
+                                setState(() => _tipoFiltroSeleccionado = nuevo);
+                              },
                             ),
                           ),
                         ),
@@ -299,17 +318,18 @@ class _PrincipalViewState extends State<PrincipalView> {
                           ),
                           child: DropdownButtonHideUnderline(
                             child: DropdownButton<Prioridad>(
-                              hint: const Text('Selecciona una prioridad'),
-                              value: prioridadSeleccionada,
+                              hint: const Text("Seleccione una Prioridad"),
+                              value: _prioridadFiltroSeleccionada,
                               isExpanded: true,
                               items: prioridades.map((p) {
-                                return DropdownMenuItem<Prioridad>(
+                                return DropdownMenuItem(
                                   value: p,
-                                  child: Text(p.nombre),
+                                  child: Text(p.nombre), // usamos nombre
                                 );
                               }).toList(),
-                              onChanged: (Prioridad? nueva) {
-                                setState(() => prioridadSeleccionada = nueva);
+                              onChanged: (nuevo) {
+                                setState(
+                                    () => _prioridadFiltroSeleccionada = nuevo);
                               },
                             ),
                           ),
@@ -439,6 +459,7 @@ class _PrincipalViewState extends State<PrincipalView> {
                           }
 
                           // 🔹 Aplicar filtro de estado si está seleccionado
+                          // 🔹 Aplicar filtro de estado
                           if (_estadoFiltroSeleccionado != null) {
                             tareasBase = tareasBase
                                 .where((t) =>
@@ -449,15 +470,35 @@ class _PrincipalViewState extends State<PrincipalView> {
                                 .toList();
                           }
 
-                          // 🔹 Mostrar resultado final
-                          if (tareasBase.isEmpty) {
-                            return Center(
-                              child: Text(
-                                _estadoFiltroSeleccionado != null
-                                    ? "No hay tareas con ese estado"
-                                    : "No se cargaron tareas",
-                              ),
-                            );
+// 🔹 Aplicar filtro de tipo de tarea
+                          // Aplicar filtros
+                          if (_estadoFiltroSeleccionado != null) {
+                            tareasBase = tareasBase
+                                .where((t) =>
+                                    t.tareaEstado ==
+                                    _estadoFiltroSeleccionado!.descripcion)
+                                .toList();
+                          }
+
+                          if (_tipoFiltroSeleccionado != null) {
+                            tareasBase = tareasBase
+                                .where((t) =>
+                                    t.descripcionTipoTarea ==
+                                    _tipoFiltroSeleccionado!.descripcion)
+                                .toList();
+                          }
+
+                          if (_prioridadFiltroSeleccionada != null) {
+                            tareasBase = tareasBase.where((t) {
+                              final tareaPrioridad =
+                                  t.nomNivelPrioridad?.toLowerCase().trim() ??
+                                      '';
+                              final filtroPrioridad =
+                                  _prioridadFiltroSeleccionada!.nombre
+                                      .toLowerCase()
+                                      .trim();
+                              return tareaPrioridad == filtroPrioridad;
+                            }).toList();
                           }
 
                           return KanbanPageView(tareas: tareasBase);
