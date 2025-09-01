@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../interfaces/tipo_tarea.dart';
 
 class TipoTareaService {
-  final String baseUrl = 'http://192.168.100.38:9085/api/Tareas/tipos/sa';
+  final String baseUrl = 'http://192.168.0.7:9085/api/Tareas/tipos/sa';
 
   Future<List<TipoTarea>> getTiposTarea() async {
     final response = await http.get(

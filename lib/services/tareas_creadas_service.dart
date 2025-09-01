@@ -3,14 +3,14 @@ import 'package:http/http.dart' as http;
 import '../interfaces/tarea.dart';
 
 class TareasCreadasService {
-  final String baseUrl = "http://192.168.100.38:9085/api/Tareas/creadas";
+  final String baseUrl = "http://192.168.0.7:9085/api/Tareas/creadas";
   
 
   Future<List<Tarea>> fetchTareasCreadas({
     required String token,
     required String user,
     int rangoIni = 0,
-    int rangoFin = 10,
+    int rangoFin = 30,
   }) async {
     try {
       final response = await http.get(

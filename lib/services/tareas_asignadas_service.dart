@@ -3,13 +3,13 @@ import 'package:http/http.dart' as http;
 import '../interfaces/tarea.dart';
 
 class TareasAsignadasService {
-  final String baseUrl = "http://192.168.100.38:9085/api/Tareas/asignadas";
+  final String baseUrl = "http://192.168.0.7:9085/api/Tareas/asignadas";
   final String token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiJhZG1pbiIsIm5iZiI6MTc1MDM0NjcyNCwiZXhwIjoxNzgxNDUwNzI0LCJpYXQiOjE3NTAzNDY3MjR9.NChZbZBfi3IZIVidfWujhmcwgtFYF4hDM1Xg7Z7z5J0";
   final String user = "desa026";
 
   Future<List<Tarea>> fetchTareasAsignadas({
     int rangoIni = 0,
-    int rangoFin = 10,
+    int rangoFin = 30,
   }) async {
     try {
       final response = await http.get(

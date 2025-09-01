@@ -8,8 +8,13 @@ Color hexToColor(String code) {
 class TareaCard extends StatelessWidget {
   final String id;
   final String descripcion;
-  final String prioridad;   // Ej: "CRITICO", "ALTO", "BAJO", "NORMAL"
-  final String backColor;   // Fondo que viene del modelo de tarea
+  final String prioridad; // Ej: "CRITICO", "ALTO", "BAJO", "NORMAL"
+  final String backColor; // Fondo que viene del modelo de tarea
+  final String descripcionTipoTarea;
+  final String descripcionReferencia;
+  final int referencia;
+  final DateTime fechaInicial;
+  final DateTime fechaFinal;
 
   const TareaCard({
     Key? key,
@@ -17,6 +22,11 @@ class TareaCard extends StatelessWidget {
     required this.descripcion,
     required this.prioridad,
     required this.backColor,
+    required this.descripcionTipoTarea,
+    required this.descripcionReferencia,
+    required this.referencia,
+    required this.fechaInicial,
+    required this.fechaFinal,
   }) : super(key: key);
 
   // 🔹 Colores de la franja según prioridad
@@ -53,48 +63,123 @@ class TareaCard extends StatelessWidget {
           )
         ],
       ),
-      child: Row(
-        children: [
-          // 🔹 Franja izquierda según prioridad
-          Container(
-            width: 6,
-            height: 100,
-            decoration: BoxDecoration(
-              color: franjaColor,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                bottomLeft: Radius.circular(12),
+      child: IntrinsicHeight(
+        child: Row(
+          children: [
+            // Franja que se ajusta al alto del contenido
+            Container(
+              width: 6,
+              decoration: BoxDecoration(
+                color: franjaColor,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(12),
+                  bottomLeft: Radius.circular(12),
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 5),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("ID: $id",
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, color: Colors.black)),
-                  const SizedBox(height: 5),
-                  Text("Descripción: $descripcion",
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis, // 🔹 evita que se rompa
-                      style: const TextStyle(color: Colors.black)),
-                  const SizedBox(height: 5),
-                  Text(
-                    "Prioridad: $prioridad",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
+            const SizedBox(width: 10),
+            Expanded(
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 10, horizontal: 5),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    RichText(
+                      text: TextSpan(
+                        children: [
+                          const TextSpan(
+                            text: "ID: ",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                          TextSpan(
+                            text: id,
+                            style: const TextStyle(color: Colors.black),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 5),
+                    RichText(
+                      text: TextSpan(
+                        children: [
+                          const TextSpan(
+                            text: "Descripción: ",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                          TextSpan(
+                            text: descripcion,
+                            style: const TextStyle(color: Colors.black),
+                          ),
+                        ],
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 5),
+                    RichText(
+                      text: TextSpan(
+                        children: [
+                          const TextSpan(
+                            text: "Fecha Inicial: ",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                          TextSpan(
+                            text: fechaInicial.toString(),
+                            style: const TextStyle(color: Colors.black),
+                          ),
+                        ],
+                      ),
+                    ),
+                    RichText(
+                      text: TextSpan(
+                        children: [
+                          const TextSpan(
+                            text: "Fecha Final: ",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                          TextSpan(
+                            text: fechaFinal.toString(),
+                            style: const TextStyle(color: Colors.black),
+                          ),
+                        ],
+                      ),
+                    ),
+                    RichText(
+                      text: TextSpan(
+                        children: [
+                          const TextSpan(
+                            text: "Referencia: ",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                          TextSpan(
+                            text: "$descripcionReferencia ($referencia)",
+                            style: const TextStyle(color: Colors.black),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

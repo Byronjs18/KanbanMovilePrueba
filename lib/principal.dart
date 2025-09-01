@@ -30,9 +30,16 @@ class _PrincipalViewState extends State<PrincipalView> {
   List<Tarea> tareasFiltradasPorEstado = [];
   String _pestanaSeleccionada = "todas"; // todas | creadas
 
+  TipoTarea? _tipoFiltroSeleccionado;
+  Prioridad? _prioridadFiltroSeleccionada;
   String? tipoSeleccionado;
   Estado? _estadoFiltroSeleccionado;
   Prioridad? prioridadSeleccionada;
+  // 🔹 Filtro por estado (ya lo tienes)
+
+// 🔹 Filtro por tipo de tarea
+
+// 🔹 Filtro por prioridad
 
   bool _cargando = false;
   bool _mostrarFiltros = false;
@@ -80,7 +87,7 @@ class _PrincipalViewState extends State<PrincipalView> {
     try {
       final data = await TareaService().fetchTareas(
         rangoIni: 0,
-        rangoFin: 10,
+        rangoFin: 30,
       );
       setState(() => tareas = data);
     } catch (e) {
@@ -141,14 +148,7 @@ class _PrincipalViewState extends State<PrincipalView> {
     }
   }
 
-  void _filtrarTareasPorEstado() {
-    if (_estadoFiltroSeleccionado == null) {
-      setState(() {
-        tareasFiltradasPorEstado = [];
-      });
-      return;
-    }
-
+  void _filtrarTareas() {
     List<Tarea> origen;
 
     if (_pestanaSeleccionada == "creadas") {
@@ -161,13 +161,45 @@ class _PrincipalViewState extends State<PrincipalView> {
       origen = tareas;
     }
 
-    setState(() {
-      tareasFiltradasPorEstado = origen
+    List<Tarea> filtradas = origen;
+
+    // 🔹 Filtro por estado
+    if (_estadoFiltroSeleccionado != null) {
+      filtradas = filtradas
           .where((t) => t.tareaEstado == _estadoFiltroSeleccionado!.descripcion)
           .toList();
+    }
+
+    // 🔹 Filtro por tipo de tarea
+    if (_tipoFiltroSeleccionado != null &&
+        _tipoFiltroSeleccionado!.descripcion.isNotEmpty) {
+      filtradas = filtradas
+          .where((t) =>
+              t.descripcionTipoTarea == _tipoFiltroSeleccionado!.descripcion)
+          .toList();
+    }
+
+    // 🔹 Filtro por prioridad
+    if (_prioridadFiltroSeleccionada != null) {
+      filtradas = filtradas
+          .where((t) =>
+              t.nomNivelPrioridad == _prioridadFiltroSeleccionada!.nombre)
+          .toList();
+    }
+
+    setState(() {
+      tareasFiltradasPorEstado = filtradas;
     });
   }
 
+  void _limpiarFiltros() {
+    setState(() {
+      _estadoFiltroSeleccionado = null;
+      _tipoFiltroSeleccionado = null;
+      _prioridadFiltroSeleccionada = null;
+      tareasFiltradasPorEstado = []; // 🔹 muestra todas
+    });
+  }
   // 🔹 Agrupar tareas y mostrarlas en PageView por estado
 
   @override
@@ -239,7 +271,7 @@ class _PrincipalViewState extends State<PrincipalView> {
                           height: 50,
                           child: DropdownButtonHideUnderline(
                             child: DropdownButton<Estado>(
-                              
+                              hint: const Text("Estado"),
                               isExpanded: true,
                               value: _estadoFiltroSeleccionado,
                               items: estados
@@ -262,24 +294,19 @@ class _PrincipalViewState extends State<PrincipalView> {
                           height: 50,
                           child: DropdownButtonHideUnderline(
                             child: DropdownButton<TipoTarea>(
-                               hint: const Text("Seleccione un tipo"),
+                              hint: const Text("Tipo"),
+                              value: _tipoFiltroSeleccionado,
                               isExpanded: true,
-                              value: tipoSeleccionado != null
-                                  ? tiposTarea.firstWhere(
-                                      (t) => t.descripcion == tipoSeleccionado,
-                                      orElse: () => tiposTarea.first,
-                                    )
-                                
-                                  : null,
-                                  
-                              items: tiposTarea
-                                  .map((tipo) => DropdownMenuItem(
-                                        value: tipo,
-                                        child: Text(tipo.descripcion),
-                                      ))
-                                  .toList(),
-                              onChanged: (nuevo) => setState(
-                                  () => tipoSeleccionado = nuevo?.descripcion),
+                              items: tiposTarea.map((tipo) {
+                                return DropdownMenuItem(
+                                  value: tipo,
+                                  child: Text(
+                                      tipo.descripcion), // usamos descripcion
+                                );
+                              }).toList(),
+                              onChanged: (nuevo) {
+                                setState(() => _tipoFiltroSeleccionado = nuevo);
+                              },
                             ),
                           ),
                         ),
@@ -289,32 +316,54 @@ class _PrincipalViewState extends State<PrincipalView> {
 
                   // Prioridades
                   prioridades.isNotEmpty
-                      ? Container(
-                          height: 50,
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE0E0E0),
-                            border: Border.all(color: const Color(0xffCED4DA)),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<Prioridad>(
-                              hint: const Text('Selecciona una prioridad'),
-                              value: prioridadSeleccionada,
-                              isExpanded: true,
-                              items: prioridades.map((p) {
-                                return DropdownMenuItem<Prioridad>(
-                                  value: p,
-                                  child: Text(p.nombre),
-                                );
-                              }).toList(),
-                              onChanged: (Prioridad? nueva) {
-                                setState(() => prioridadSeleccionada = nueva);
-                              },
+                      ? Row(
+                          children: [
+                            // 🔹 Dropdown de prioridades
+                            Expanded(
+                              child: Container(
+                                height: 50,
+                                padding:
+                                    const EdgeInsets.only(right: 35),
+                                
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<Prioridad>(
+                                    hint:
+                                        const Text("Prioridad"),
+                                    value: _prioridadFiltroSeleccionada,
+                                    isExpanded: true,
+                                    items: prioridades.map((p) {
+                                      return DropdownMenuItem(
+                                        value: p,
+                                        child: Text(p.nombre), // usamos nombre
+                                      );
+                                    }).toList(),
+                                    onChanged: (nuevo) {
+                                      setState(() =>
+                                          _prioridadFiltroSeleccionada = nuevo);
+                                    },
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
+
+                            const SizedBox(width: 8),
+
+                            // 🔹 Botón de limpiar filtros
+                            ElevatedButton.icon(
+                              onPressed: _limpiarFiltros,
+                              icon: const Icon(Icons.clear, color: Colors.white, size: 18),
+                              label: const Text("Limpiar Filtros", style: TextStyle(color: Colors.white),),
+                              
+                              style: ElevatedButton.styleFrom(
+                                
+                                backgroundColor:  Color(0xff134895),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 30, vertical: 12),
+                              ),
+                            ),
+                          ],
                         )
-                      : _filtroBox("Prioridad"),
+                      : const SizedBox(),
 
                   const SizedBox(height: 6),
                   _inputFiltro("Buscar por Referencia"),
@@ -437,8 +486,6 @@ class _PrincipalViewState extends State<PrincipalView> {
                             default:
                               tareasBase = [];
                           }
-
-                          // 🔹 Aplicar filtro de estado si está seleccionado
                           if (_estadoFiltroSeleccionado != null) {
                             tareasBase = tareasBase
                                 .where((t) =>
@@ -449,15 +496,35 @@ class _PrincipalViewState extends State<PrincipalView> {
                                 .toList();
                           }
 
-                          // 🔹 Mostrar resultado final
-                          if (tareasBase.isEmpty) {
-                            return Center(
-                              child: Text(
-                                _estadoFiltroSeleccionado != null
-                                    ? "No hay tareas con ese estado"
-                                    : "No se cargaron tareas",
-                              ),
-                            );
+// 🔹 Aplicar filtro de tipo de tarea
+                          // Aplicar filtros
+                          if (_estadoFiltroSeleccionado != null) {
+                            tareasBase = tareasBase
+                                .where((t) =>
+                                    t.tareaEstado ==
+                                    _estadoFiltroSeleccionado!.descripcion)
+                                .toList();
+                          }
+
+                          if (_tipoFiltroSeleccionado != null) {
+                            tareasBase = tareasBase
+                                .where((t) =>
+                                    t.descripcionTipoTarea ==
+                                    _tipoFiltroSeleccionado!.descripcion)
+                                .toList();
+                          }
+
+                          if (_prioridadFiltroSeleccionada != null) {
+                            tareasBase = tareasBase.where((t) {
+                              final tareaPrioridad =
+                                  t.nomNivelPrioridad.toLowerCase().trim() ??
+                                      '';
+                              final filtroPrioridad =
+                                  _prioridadFiltroSeleccionada!.nombre
+                                      .toLowerCase()
+                                      .trim();
+                              return tareaPrioridad == filtroPrioridad;
+                            }).toList();
                           }
 
                           return KanbanPageView(tareas: tareasBase);
@@ -473,26 +540,7 @@ class _PrincipalViewState extends State<PrincipalView> {
 }
 
 // 🔹 Caja de filtro
-Widget _filtroBox(String label) {
-  return Container(
-    height: 50,
-    decoration: BoxDecoration(
-      color: const Color(0xFFE0E0E0),
-      border: Border.all(color: const Color(0xffCED4DA)),
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: Row(
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 8),
-          child: Text(label),
-        ),
-        const Spacer(),
-        const Icon(Icons.expand_more),
-      ],
-    ),
-  );
-}
+
 
 // 🔹 Input de búsqueda
 Widget _inputFiltro(String label) {

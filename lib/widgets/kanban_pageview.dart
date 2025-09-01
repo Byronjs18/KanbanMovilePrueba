@@ -60,7 +60,12 @@ class KanbanPageView extends StatelessWidget {
                       id: tarea.iDTarea.toString(),
                       descripcion: tarea.descripcion.toString(),
                       prioridad: tarea.nomNivelPrioridad,
-                      backColor: tarea.backColor, // fondo/stripe según tu TareaCard
+                      backColor: tarea.backColor, 
+                      descripcionTipoTarea: tarea.descripcionTipoTarea,
+                      descripcionReferencia: tarea.descripcionReferencia,
+                      referencia: tarea.referencia,
+                      fechaInicial: tarea.fechaInicial,
+                      fechaFinal: tarea.fechaFinal,
                     );
                   },
                 ),
